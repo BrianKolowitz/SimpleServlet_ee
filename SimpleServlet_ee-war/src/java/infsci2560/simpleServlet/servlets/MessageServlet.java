@@ -9,7 +9,15 @@ import infsci2560.simpleServlet.persistence.SsMessage;
 import infsci2560.simpleServlet.persistence.SsMessageFacadeLocal;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.servlet.RequestDispatcher;
@@ -28,15 +36,30 @@ public class MessageServlet extends HttpServlet {
     private SsMessageFacadeLocal ssMessageFacade;
 
     
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        
+    protected void getAllMessages(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {    
         try
         {
-        List<SsMessage> messages = ssMessageFacade.findAll();
-        request.setAttribute("messages", messages);
-        RequestDispatcher view = request.getRequestDispatcher("listMessages.jsp");
-        view.forward(request, response);
+            List<SsMessage> messages = ssMessageFacade.findAll();
+            request.setAttribute("messages", messages);
+            RequestDispatcher view = request.getRequestDispatcher("listMessages.jsp");
+            view.forward(request, response);
+        }
+        catch ( EJBException ex ) {
+            String message = ex.getMessage();
+            System.out.println("Exception: " + message);
+            throw ex;
+        }
+        
+    }
+    protected void getMessage(HttpServletRequest request, HttpServletResponse response, int id)
+            throws ServletException, IOException {    
+        try
+        {
+            SsMessage message = ssMessageFacade.find(id);
+            request.setAttribute("message", message);
+            RequestDispatcher view = request.getRequestDispatcher("reviewMessage.jsp");
+            view.forward(request, response);
         }
         catch ( EJBException ex ) {
             String message = ex.getMessage();
@@ -58,7 +81,13 @@ public class MessageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+        
+        String id = request.getParameter("id");
+        if ( id == null ) {
+            getAllMessages(request, response);
+        } else {
+            getMessage(request, response, Integer.parseInt(id));
+        }
     }
 
     /**
@@ -72,7 +101,50 @@ public class MessageServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+        
+        Date start=null, connection = null, process =null, cclose =null;
+        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Boolean valid = false;
+        String clean_author, clean_title, clean_message;
+        Matcher matcher;
+         
+        //clean the inputs using regular expressions
+        // Compile regular expression
+        Pattern pattern = Pattern.compile("[;:,#&'\".!?]");
+        // Replace all occurrences of pattern in input
+        matcher = pattern.matcher(request.getParameter ("sender"));
+        clean_author = matcher.replaceAll("|");
+        matcher = pattern.matcher(request.getParameter ("title"));
+        clean_title = matcher.replaceAll("|");
+        matcher = pattern.matcher(request.getParameter ("message"));
+        clean_message = matcher.replaceAll("|");
+        
+        //open the DBMS and insert the record
+        SsMessage message = new SsMessage();
+        message.setAuthor(clean_author);
+        message.setTitle(clean_title);
+        message.setPtime(start);
+        message.setMessage(clean_message);
+        RequestDispatcher view;
+        try {
+            ssMessageFacade.create(message);
+            request.setAttribute("clean_author", clean_author);
+            request.setAttribute("clean_title", clean_title);
+            request.setAttribute("clean_message", clean_message);
+            
+            int connectionTime = 1000; // connection.getTime()-start.getTime()
+            int insertTime = 750; // process.getTime()-connection.getTime()
+            int closeTime = 250; // cclose.getTime()-process.getTime()
+            request.setAttribute("connection_time", connectionTime);
+            request.setAttribute("insert_time", insertTime);
+            request.setAttribute("close_time", closeTime);
+            view = request.getRequestDispatcher("messageSuccess.jsp");
+        } catch (Exception ex ) {
+            request.setAttribute("sender", request.getParameter("sender"));
+            request.setAttribute("message", request.getParameter("message"));
+            view = request.getRequestDispatcher("messageError.jsp");            
+        }
+        view.forward(request, response);
     }
 
     /**

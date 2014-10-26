@@ -1,6 +1,6 @@
 <%@page import="java.util.*" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html>
     <head>
@@ -11,7 +11,11 @@
         <h1>The following Messages exist</h1>
         <ol>
             <c:forEach items="${requestScope.messages}" var="message">
-                <li><a href="reviewMessage?file=${message.messageid}"><c:out value="${message.author}"></c:out><</a></li>
+                <li>
+                    <a href="Message?id=${message.messageid}">
+                        <c:out value="${message.author}"></c:out>
+                    </a>
+                </li>
             </c:forEach>
         </ol>
     </body>
