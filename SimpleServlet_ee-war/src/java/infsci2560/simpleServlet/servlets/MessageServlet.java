@@ -101,11 +101,7 @@ public class MessageServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        Date start=null, connection = null, process =null, cclose =null;
-        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Boolean valid = false;
-        String clean_author, clean_title, clean_message;
+
         Matcher matcher;
          
         //clean the inputs using regular expressions
@@ -113,28 +109,41 @@ public class MessageServlet extends HttpServlet {
         Pattern pattern = Pattern.compile("[;:,#&'\".!?]");
         // Replace all occurrences of pattern in input
         matcher = pattern.matcher(request.getParameter ("sender"));
-        clean_author = matcher.replaceAll("|");
+        String clean_author = matcher.replaceAll("|");
         matcher = pattern.matcher(request.getParameter ("title"));
-        clean_title = matcher.replaceAll("|");
+        String clean_title = matcher.replaceAll("|");
         matcher = pattern.matcher(request.getParameter ("message"));
-        clean_message = matcher.replaceAll("|");
+        String clean_message = matcher.replaceAll("|");
         
         //open the DBMS and insert the record
-        SsMessage message = new SsMessage();
-        message.setAuthor(clean_author);
-        message.setTitle(clean_title);
-        message.setPtime(start);
-        message.setMessage(clean_message);
+        
+        
         RequestDispatcher view;
         try {
-            ssMessageFacade.create(message);
+            String id = request.getParameter("id");
+            if ( id == null ) {
+                SsMessage message = new SsMessage();
+                message.setAuthor(clean_author);
+                message.setTitle(clean_title);
+                message.setPtime(new Date());
+                message.setMessage(clean_message);
+                ssMessageFacade.create(message);
+            } else {
+                SsMessage message = ssMessageFacade.find(Integer.parseInt(id));
+                message.setAuthor(clean_author);
+                message.setTitle(clean_title);
+                message.setPtime(new Date());
+                message.setMessage(clean_message);
+                ssMessageFacade.edit(message);
+            }
+            
             request.setAttribute("clean_author", clean_author);
             request.setAttribute("clean_title", clean_title);
             request.setAttribute("clean_message", clean_message);
             
             int connectionTime = 1000; // connection.getTime()-start.getTime()
             int insertTime = 750; // process.getTime()-connection.getTime()
-            int closeTime = 250; // cclose.getTime()-process.getTime()
+            int closeTime = 250; // close.getTime()-process.getTime()
             request.setAttribute("connection_time", connectionTime);
             request.setAttribute("insert_time", insertTime);
             request.setAttribute("close_time", closeTime);

@@ -10,7 +10,7 @@
         <h1>Review Message Pane!</h1>
         <h3><a href ="Message">Click here to got back to the message list</a></h3>
         <form method ="post" action = "Message">
-            <input type="hidden" name="file" value="${requestScope.parameter.id}" />
+            <input type="hidden" name="id" value="${param["id"]}" />
             <table border="1">
                 <tbody>
                     <c:choose>
