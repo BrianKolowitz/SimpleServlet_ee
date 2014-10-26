@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 import javax.ejb.EJB;
+import javax.ejb.EJBException;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -22,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
  * @author kolowitzbj
  */
 public class MessageServlet extends HttpServlet {
+    
     @EJB
     private SsMessageFacadeLocal ssMessageFacade;
 
@@ -29,10 +31,18 @@ public class MessageServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
+        try
+        {
         List<SsMessage> messages = ssMessageFacade.findAll();
         request.setAttribute("messages", messages);
         RequestDispatcher view = request.getRequestDispatcher("listMessages.jsp");
         view.forward(request, response);
+        }
+        catch ( EJBException ex ) {
+            String message = ex.getMessage();
+            System.out.println("Exception: " + message);
+            throw ex;
+        }
         
     }
 
